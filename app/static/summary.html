@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kaizen Studio - Synthèse</title>
+    <link rel="stylesheet" href="/static/styles.css?v=summary-layout-polish-1" />
+    <style>
+      .summary-shell { width: min(1480px, 100%); margin: 1.25rem auto; padding: 0 1.25rem 2.5rem; }
+      .summary-section {
+        background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+        box-shadow: var(--shadow); padding: 1.25rem; margin-top: 1rem;
+      }
+      .summary-section h2 { margin: 0; font-size: 1.12rem; letter-spacing: -.01em; }
+      .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .85rem; }
+      .metric-card { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; padding: 1rem; background: linear-gradient(145deg, #fff, #f7faff); }
+      .metric-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--primary); }
+      .metric-card span { display: block; color: var(--muted); font-size: .82rem; font-weight: 600; }
+      .metric-card strong { display: block; margin-top: .45rem; font-size: clamp(1.25rem, 2vw, 1.6rem); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+      .chart-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: linear-gradient(180deg, #fff, #fbfcfe); }
+      #yamazumi { display: block; width: 100%; min-width: 640px; }
+      .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+      .table-wrap table { min-width: 760px; }
+      .summary-section > .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .8rem; }
+      .summary-section > .panel-header > div { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: .65rem; }
+      .comparison-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: .8rem; margin: .8rem 0; }
+      .comparison-toolbar label { display: grid; flex: 1 1 300px; gap: .35rem; color: var(--muted); font-size: .82rem; font-weight: 600; }
+      .comparison-toolbar input { width: 100%; min-width: 0; padding: .6rem .7rem; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+      .comparison-table-wrap { height: 70vh; min-height: 360px; max-height: 760px; overflow: auto; }
+      .comparison-table-wrap thead th { position: sticky; top: 0; z-index: 1; }
+      .comparison-legend { display: flex; flex-wrap: wrap; gap: .5rem; margin: .6rem 0; }
+      .comparison-legend span { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; color: var(--muted); }
+      .comparison-legend i { width: .8rem; height: .8rem; border-radius: 3px; }
+      .comparison-error-low { background: #d5f1dd; }
+      .comparison-error-medium { background: #fff4d8; }
+      .comparison-error-high { background: #fde9e7; }
+      .comparison-activity { background: #e9f6ed; }
+      .comparison-stop { background: #edf0f3; }
+      .comparison-activity td:first-child { border-left: 4px solid #2e8b57; }
+      .comparison-stop td:first-child { border-left: 4px solid #7d8188; }
+      .comparison-error-low td:last-child { color: #176b35; font-weight: 700; }
+      .comparison-error-medium td:last-child { color: #805500; font-weight: 700; }
+      .comparison-error-high td:last-child { color: #a12622; font-weight: 700; }
+      table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .88rem; }
+      th, td { border-bottom: 1px solid var(--border); padding: .72rem .75rem; text-align: left; }
+      th { position: sticky; top: 0; z-index: 1; background: #f0f4f9; color: var(--primary-strong); font-size: .78rem; letter-spacing: .01em; white-space: nowrap; }
+      tbody tr:last-child td { border-bottom: 0; }
+      tbody tr:not(.comparison-note-row):hover { filter: brightness(.975); }
+      td { vertical-align: middle; }
+      td:not(:first-child) { font-variant-numeric: tabular-nums; }
+      .subtle { color: var(--muted); font-size: .86rem; }
+      .estimate-notice { color: #82400f; background: #fff5e9; border: 1px solid #f2d6b8; border-left: 4px solid #d76c2d; border-radius: 10px; padding: .85rem 1rem; margin: 0 0 1rem; line-height: 1.5; }
+      .next-step { border-left: 4px solid var(--primary); }
+      .next-step p { margin: .35rem 0 .75rem; color: var(--muted); }
+      .station-review-link { color: var(--primary); font-weight: 600; margin-right: .65rem; }
+      .summary-score-list { display: flex; flex-wrap: wrap; gap: .3rem; min-width: 190px; }
+      .summary-score-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: .25rem .5rem;
+        border: 1px solid #f3c28a;
+        border-radius: 999px;
+        color: #8a3f08;
+        background: #fff8ef;
+        font-size: .78rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .summary-score-chip.missing {
+        border-color: var(--border);
+        color: var(--muted);
+        background: #f5f7fa;
+      }
+      .summary-topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: .8rem 1.2rem;
+      }
+      .summary-heading { min-width: 0; }
+      .summary-heading h1 { overflow-wrap: anywhere; line-height: 1.12; }
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        min-height: 42px;
+        padding: .55rem .85rem;
+        border: 1px solid rgba(255, 255, 255, .42);
+        border-radius: 10px;
+        color: white;
+        background: rgba(255, 255, 255, .1);
+        text-decoration: none;
+        font-size: .88rem;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: background .16s ease, border-color .16s ease;
+      }
+      .back-link::before { content: "←"; font-size: 1rem; }
+      .back-link:hover { background: rgba(255, 255, 255, .2); border-color: white; }
+      .summary-topbar > .account-controls { grid-column: 1 / -1; justify-self: end; }
+      .takt-section { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .7rem 1.5rem; padding: .85rem 1.1rem; }
+      .takt-section h2 { margin: 0; }
+      .takt-form { display: flex; flex-wrap: wrap; align-items: end; justify-content: flex-end; gap: .7rem; }
+      .takt-form label { display: grid; gap: .3rem; color: var(--muted); font-size: .86rem; }
+      .takt-form input { width: 150px; padding: .55rem .65rem; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+      .takt-form button { padding: .6rem .9rem; }
+      #taktStatus { grid-column: 1 / -1; margin: 0; }
+      #taktStatus:empty { display: none; }
+      @media (max-width: 700px) {
+        .summary-shell { margin: .75rem auto; padding: 0 .7rem 1.5rem; }
+        .summary-section { padding: .85rem; border-radius: 13px; }
+        .summary-section > .panel-header { align-items: flex-start; flex-direction: column; }
+        .summary-section > .panel-header > div { justify-content: flex-start; }
+        .summary-topbar { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+        .summary-topbar > .account-controls { grid-column: 1; justify-self: start; margin-left: 0; }
+        .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
+        .metric-card { padding: .75rem; }
+        .metric-card span { font-size: .75rem; }
+        .metric-card strong { font-size: 1.15rem; }
+        .takt-section { grid-template-columns: minmax(0, 1fr); align-items: start; gap: .65rem; }
+        .takt-form { width: 100%; justify-content: flex-start; align-items: end; }
+        .takt-form label { flex: 1 1 130px; }
+        .takt-form input { width: 100%; }
+        .takt-form button { flex: 0 0 auto; }
+        .comparison-table-wrap { height: 65vh; min-height: 280px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar summary-topbar">
+      <div class="summary-heading">
+        <div class="eyebrow">Kaizen Studio</div>
+        <h1 id="projectTitle">Synthèse du projet</h1>
+      </div>
+      <a class="back-link" href="/" aria-label="Retour au tableau de bord des projets">Retour aux projets</a>
+    </header>
+    <main class="summary-shell">
+      <p class="estimate-notice">Temps issus de l'analyse vidéo : ESTIMATIONS à valider par chronométrage réel. Le mode mouvement mesure uniquement la présence de mouvement, pas la nature du travail.</p>
+      <section id="summaryNextStep" class="summary-section next-step" hidden aria-live="polite"></section>
+      <section id="metrics" class="summary-section summary-grid" aria-live="polite"></section>
+      <section class="summary-section takt-section" aria-labelledby="taktHeading">
+        <h2 id="taktHeading">Takt du projet</h2>
+        <form id="taktForm" class="takt-form">
+          <label for="taktInput">Takt time (secondes)
+            <input id="taktInput" type="number" min="0.1" step="0.1" required />
+          </label>
+          <button id="saveTakt" type="submit">Enregistrer le takt</button>
+        </form>
+        <p id="taktStatus" class="subtle" aria-live="polite"></p>
+      </section>
+      <section class="summary-section">
+        <div class="panel-header">
+          <h2>Yamazumi multi-postes</h2>
+          <div>
+            <span class="subtle">Temps par catégorie comparés au takt</span>
+            <button id="exportExcel" type="button">Exporter Excel</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="yamazumi" height="360" aria-label="Graphique Yamazumi empilé avec ligne de takt"></canvas></div>
+      </section>
+      <section class="summary-section">
+        <div class="panel-header"><h2>Synthèse par poste</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Poste</th><th>VA (s)</th><th>NVA nécessaire (s)</th><th>Gaspillage (s)</th><th>Non classé (s)</th><th>Cycle (s)</th><th>% VA</th><th>Écart au takt (s)</th><th>Scores ergonomiques</th><th>Revue</th></tr></thead>
+            <tbody id="stationRows"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="summary-section">
+        <div class="panel-header"><h2>Comparaison des cycles</h2></div>
+        <p class="subtle">Les durées et dispersions sont calculées à partir des intervalles de cycle enregistrés. Un seul cycle ne permet pas de mesurer la variabilité.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Poste</th><th>Cycles (durée)</th><th>Nombre</th><th>Moyenne (s)</th><th>Médiane (s)</th><th>Min–max (s)</th><th>Écart-type (s)</th><th>CV (%)</th><th>Actions</th></tr></thead>
+            <tbody id="cycleRows"></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="summary-section">
+        <div class="panel-header"><h2>Écart estimation / chronométrage</h2></div>
+        <p class="subtle">Erreur absolue = |durée estimée − chrono réel| / chrono réel. Les phases sans chrono positif ne sont pas incluses dans la moyenne.</p>
+        <div class="comparison-toolbar">
+          <label>
+            Rechercher un poste, un numéro de phase ou une description
+            <input id="comparisonSearch" type="search" placeholder="Ex. LVA, phase 4, vissage…" />
+          </label>
+          <span id="comparisonCount" class="subtle" aria-live="polite"></span>
+        </div>
+        <div class="comparison-legend" aria-label="Légende du code couleur">
+          <span><i style="background:#e9f6ed"></i>Vert pâle : activité sans chrono</span>
+          <span><i style="background:#edf0f3"></i>Gris : arrêt sans chrono</span>
+          <span><i style="background:#d5f1dd"></i>Vert soutenu : écart ≤ 10 %</span>
+          <span><i style="background:#fff4d8"></i>Orange : écart &gt; 10 % et ≤ 25 %</span>
+          <span><i style="background:#fde9e7"></i>Rouge : écart &gt; 25 %</span>
+          <span><i style="background:#f4f6f8"></i>Gris : chrono non saisi</span>
+        </div>
+        <div class="table-wrap comparison-table-wrap">
+          <table>
+            <thead><tr><th>Poste</th><th>Phase</th><th>Description</th><th>Estimé (s)</th><th>Chrono réel (s)</th><th>Écart absolu (s)</th><th>Erreur absolue (%)</th></tr></thead>
+            <tbody id="comparisonRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <script src="/static/auth-ui.js?v=local-auth-1"></script>
+    <script src="/static/summary.js?v=summary-comparison-colors-3"></script>
+  </body>
+</html>

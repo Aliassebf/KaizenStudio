@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes" />
+    <title>Kaizen Studio - Revue</title>
+    <link rel="stylesheet" href="/static/styles.css?v=review-steps-scroll-1" />
+  </head>
+  <body>
+    <header class="topbar review-topbar">
+      <div class="review-heading">
+        <div class="eyebrow">Kaizen Studio</div>
+        <h1 id="stationTitle">Revue d'analyse</h1>
+      </div>
+      <div class="banner-warning">Temps estimés — à valider par chronométrage réel</div>
+      <a class="review-back-link" href="/">← Retour aux projets</a>
+    </header>
+
+    <main class="app-shell">
+      <div class="review-layout">
+        <aside class="review-sidebar shared-video-tools" aria-label="Vidéo et outils accessibles depuis tous les onglets">
+          <section class="video-panel">
+            <div class="shared-video-heading">
+              <h2>Vidéo du poste</h2>
+              <span id="sharedVideoTime" class="video-time-readout" aria-live="polite">0.0 s</span>
+            </div>
+            <div class="video-wrap">
+              <video id="videoPlayer" controls preload="metadata" aria-label="Lecteur vidéo du poste"></video>
+              <canvas id="postureOverlay" aria-hidden="true"></canvas>
+            </div>
+            <div class="controls-row">
+              <button id="playToggle" type="button">Lecture</button>
+              <label>
+                Seuil manuel (% pixels, 0 = auto)
+                <input id="thresholdSlider" type="range" min="0" max="100" step="0.1" value="0" />
+              </label>
+              <label>
+                Durée minimale
+                <input id="minLengthSlider" type="range" min="0.2" max="4" step="0.1" value="1" />
+              </label>
+              <span id="rangeValues">Auto · 1.0 s</span>
+            </div>
+          </section>
+
+          <section class="analysis-panel">
+            <div class="panel-header">
+              <h2>Paramètres d'analyse</h2>
+              <button id="analyzeButton" type="button">Analyser le mouvement</button>
+            </div>
+            <div class="analysis-settings">
+              <label>Début (s)<input id="windowStart" type="number" min="0" step="0.1" value="0" /></label>
+              <label>Fin (s)<input id="windowEnd" type="number" min="0.1" step="0.1" /></label>
+            </div>
+            <progress id="analysisProgress" max="100" value="0"></progress>
+            <p id="analysisStatus" class="form-message" role="status">Aucune analyse lancée.</p>
+            <p class="subtle">Le mode motion mesure uniquement la présence de mouvement. Les temps restent des estimations à valider.</p>
+          </section>
+
+          <section class="roi-panel shared-roi-panel">
+            <div class="panel-header">
+              <h2>Zone d'intérêt (ROI)</h2>
+              <button id="clearRoi" type="button" class="secondary">Effacer toutes les zones</button>
+            </div>
+            <p class="subtle">Mets la vidéo en pause sur une image nette, puis ajoute une ou plusieurs zones. Les zones ne quittent pas cet ordinateur.</p>
+            <button id="addRoi" type="button" class="secondary" disabled>Ajouter une zone</button>
+            <div id="roiPreview" class="roi-preview">
+              <img id="roiFrame" alt="Image vidéo pour définir la zone d'intérêt" />
+              <canvas id="roiCanvas" aria-label="Dessiner la zone d'intérêt"></canvas>
+            </div>
+            <p id="roiCoordinates" class="subtle">Aucune ROI définie (image entière utilisée).</p>
+            <div id="roiList" class="roi-list" aria-live="polite"></div>
+            <p id="roiStatus" class="form-message" role="status">Mets la vidéo en pause pour capturer une image de sélection.</p>
+          </section>
+        </aside>
+        <div class="review-content">
+      <nav class="review-tabs" role="tablist" aria-label="Sections de la revue">
+        <button id="reviewTabButton-review" class="review-tab-button" type="button" role="tab" aria-selected="true" aria-controls="reviewTabPanel-review" tabindex="0" data-review-tab="review">1. Revue</button>
+        <button id="reviewTabButton-operations" class="review-tab-button" type="button" role="tab" aria-selected="false" aria-controls="reviewTabPanel-operations" tabindex="-1" data-review-tab="operations">2. Opérations &amp; annotations</button>
+        <button id="reviewTabButton-cycles" class="review-tab-button" type="button" role="tab" aria-selected="false" aria-controls="reviewTabPanel-cycles" tabindex="-1" data-review-tab="cycles">3. Cycles</button>
+        <button id="reviewTabButton-ergonomics" class="review-tab-button" type="button" role="tab" aria-selected="false" aria-controls="reviewTabPanel-ergonomics" tabindex="-1" data-review-tab="ergonomics">4. Ergonomie</button>
+      </nav>
+      <p id="configurationSaveStatus" class="configuration-save-status subtle" role="status" aria-live="polite">Les réglages de chaque onglet sont enregistrés localement pour ce poste.</p>
+      <section id="reviewTabPanel-review" class="review-tab-panel" role="tabpanel" aria-labelledby="reviewTabButton-review">
+      <div class="review-workspace">
+        <section class="timeline-panel">
+          <div class="panel-header">
+            <h2>Frise chronologique</h2>
+            <span id="phaseCount">0 phases</span>
+          </div>
+          <div id="timeline" class="timeline" aria-label="Phases chronologiques"></div>
+          <div id="annotationTimeline" class="annotation-timeline" aria-label="Annotations des opérations"></div>
+          <p class="subtle">La frise d’annotations prépare des labels humains pour un futur modèle ; elle n’effectue aucune reconnaissance automatique.</p>
+          <div class="timeline-controls">
+            <span id="selectedInterval" class="subtle" aria-live="polite">Clique sur une phase pour afficher son intervalle et lire uniquement cette zone.</span>
+            <button id="playFullVideo" type="button" class="secondary">Lire toute la vidéo</button>
+          </div>
+          <p class="subtle">Signal de mouvement lissé (~0,6 s) et seuil de détection. Il indique une présence de mouvement, pas une action.</p>
+          <canvas id="motionChart" width="960" height="180" aria-label="Signal de mouvement lissé et seuil"></canvas>
+        </section>
+
+        <section class="phase-panel steps-panel">
+          <div class="panel-header">
+            <h2>Étapes</h2>
+            <div class="phase-actions">
+              <button id="splitPhase" type="button" class="secondary">Couper au temps vidéo</button>
+              <button id="mergePhases" type="button" class="secondary">Fusionner les 2 sélectionnées</button>
+            </div>
+          </div>
+          <div class="phase-filters">
+            <label>
+              Rechercher une étape
+              <input id="phaseSearch" type="search" placeholder="Ex. 4, phase 4, opération ou commentaire…" />
+            </label>
+            <label>
+              Type
+              <select id="phaseTypeFilter">
+                <option value="">Tous les types</option>
+                <option value="activity">Activité</option>
+                <option value="stop">Arrêt</option>
+              </select>
+            </label>
+            <label>
+              Catégorie
+              <select id="phaseCategoryFilter">
+                <option value="">Toutes les catégories</option>
+                <option value="VA">VA</option>
+                <option value="NVA nécessaire">NVA nécessaire</option>
+                <option value="Gaspillage">Gaspillage</option>
+                <option value="Non classé">Non classé</option>
+              </select>
+            </label>
+            <span id="phaseFilterCount" class="subtle" aria-live="polite"></span>
+          </div>
+          <datalist id="operationSuggestions"></datalist>
+          <div id="phaseList" class="phase-list"></div>
+        </section>
+      </div>
+      </section>
+
+      <section id="reviewTabPanel-operations" class="review-tab-panel" role="tabpanel" aria-labelledby="reviewTabButton-operations" hidden>
+        <section class="phase-panel operation-tab-panel">
+          <div class="tab-panel-heading">
+            <div>
+              <h2>Préparer les opérations à reconnaître</h2>
+              <p class="subtle">Définissez le vocabulaire du projet, annotez des occurrences et séparez les vidéos pour entraîner et évaluer un classifieur local.</p>
+            </div>
+            <span class="workflow-step">Étape 2 sur 4</span>
+          </div>
+          <div class="operation-guide">
+            <form id="operationForm" class="operation-form">
+              <label>Nouvelle opération
+                <input id="operationName" name="nom" type="text" maxlength="200" placeholder="Ex. Visser le capot" required />
+              </label>
+              <button type="submit">Ajouter à la liste du projet</button>
+            </form>
+            <label class="dataset-split-field">Affectation de cette vidéo
+              <select id="datasetSplit">
+                <option value="excluded">Exclure du jeu d’apprentissage</option>
+                <option value="train">Entraînement</option>
+                <option value="validation">Validation (vidéo jamais vue)</option>
+              </select>
+            </label>
+            <p id="annotationDatasetSummary" class="dataset-summary subtle" aria-live="polite"></p>
+            <section class="operation-learning" aria-labelledby="operationLearningHeading">
+              <h3 id="operationLearningHeading">Apprentissage local des opérations</h3>
+              <p class="subtle">OpenCV entraîne un classifieur sur les annotations des vidéos « Entraînement » et mesure ses résultats sur des vidéos séparées « Validation ». Il analyse des caractéristiques visuelles et de mouvement, sans comprendre le sens du travail. Tout score est indicatif et toute proposition doit être vérifiée.</p>
+              <div class="operation-learning-actions">
+                <button id="trainOperationModel" type="button">Entraîner et évaluer le modèle</button>
+                <button id="suggestOperations" type="button" class="secondary" disabled>Proposer sur cette vidéo exclue</button>
+              </div>
+              <p id="operationModelStatus" class="form-message" role="status" aria-live="polite">Chargement de l'état du modèle…</p>
+              <div id="operationModelResults" class="operation-model-results"></div>
+              <p id="modelSuggestionStatus" class="form-message" role="status" aria-live="polite"></p>
+              <div id="modelSuggestions" class="model-suggestions" aria-live="polite"></div>
+            </section>
+            <button id="downloadAnnotationManifest" type="button" class="secondary">Exporter les annotations du projet (JSON)</button>
+            <p id="operationStatus" class="form-message" role="status"></p>
+            <div id="operationCatalog" class="operation-catalog" aria-live="polite"></div>
+            <form id="annotationForm" class="annotation-form">
+              <h3>Annoter une occurrence sur cette vidéo</h3>
+              <p class="subtle">Utilisez la vidéo partagée à gauche pour positionner l’image, puis les boutons « Instant vidéo » pour relever les limites.</p>
+              <p id="annotationVideoTime" class="video-time-readout" aria-live="polite">Instant vidéo courant : 0.0 s</p>
+              <label>Opération
+                <select id="annotationOperation">
+                  <option value="">Autre / incertain</option>
+                </select>
+              </label>
+              <div class="annotation-time-fields">
+                <label>Début (s)
+                  <span><input id="annotationStart" type="number" min="0" step="0.1" required /><button id="setAnnotationStart" type="button" class="secondary">Instant vidéo</button></span>
+                </label>
+                <label>Fin (s)
+                  <span><input id="annotationEnd" type="number" min="0.1" step="0.1" required /><button id="setAnnotationEnd" type="button" class="secondary">Instant vidéo</button></span>
+                </label>
+              </div>
+              <div class="annotation-actions">
+                <button id="saveAnnotation" type="submit">Ajouter l’annotation</button>
+                <button id="cancelAnnotationEdit" type="button" class="secondary" hidden>Annuler la modification</button>
+              </div>
+              <p id="annotationStatus" class="form-message" role="status"></p>
+            </form>
+            <div id="videoAnnotationList" class="video-annotation-list" aria-live="polite"></div>
+          </div>
+        </section>
+      </section>
+
+      <section id="reviewTabPanel-cycles" class="review-tab-panel" role="tabpanel" aria-labelledby="reviewTabButton-cycles" hidden>
+        <section class="phase-panel cycle-panel cycle-tab-panel" aria-labelledby="cycleHeading">
+          <div class="tab-panel-heading">
+            <div>
+              <h2 id="cycleHeading">Comparer plusieurs cycles</h2>
+              <p class="subtle">Outil complémentaire · les limites et propositions restent à vérifier sur la vidéo.</p>
+            </div>
+            <span class="workflow-step">Étape 3 sur 4</span>
+          </div>
+          <p class="subtle">Les propositions automatiques utilisent les arrêts prolongés comme séparateurs. Elles ne reconnaissent pas le contenu du travail : vérifiez chaque intervalle sur la vidéo avant de l’ajouter.</p>
+          <p class="subtle">Positionnez la vidéo partagée à gauche, puis utilisez « Instant vidéo » pour saisir une limite.</p>
+          <button id="suggestCycles" type="button" class="secondary">Proposer depuis les arrêts détectés</button>
+          <div class="cycle-form">
+            <label>Début (s)
+              <span><input id="cycleStart" type="number" min="0" step="0.1" /><button id="setCycleStart" type="button" class="secondary">Instant vidéo</button></span>
+            </label>
+            <label>Fin (s)
+              <span><input id="cycleEnd" type="number" min="0.1" step="0.1" /><button id="setCycleEnd" type="button" class="secondary">Instant vidéo</button></span>
+            </label>
+            <button id="saveCycle" type="button">Ajouter le cycle</button>
+          </div>
+          <div class="cycle-detection-settings">
+            <label>Arrêt séparateur minimal (s)
+              <input id="minimumStop" type="number" min="0.5" max="600" step="0.5" value="2" />
+            </label>
+            <label>Cycle minimal proposé (s)
+              <input id="minimumCycle" type="number" min="1" max="3600" step="1" value="5" />
+            </label>
+          </div>
+          <p id="cycleStatus" class="form-message" role="status">Aucun cycle enregistré. Définissez des limites ou demandez des propositions.</p>
+          <div id="cycleCandidates" class="cycle-list" aria-live="polite"></div>
+          <div id="cycleList" class="cycle-list" aria-live="polite"></div>
+        </section>
+      </section>
+
+      <section id="reviewTabPanel-ergonomics" class="review-tab-panel" role="tabpanel" aria-labelledby="reviewTabButton-ergonomics" hidden>
+        <section class="posture-panel ergonomics-tab-panel">
+          <div class="tab-panel-heading">
+            <div>
+              <h2>Suivi de posture local et cotation ergonomique</h2>
+              <p class="subtle">Outil complémentaire, séparé de l’analyse temporelle.</p>
+            </div>
+            <span class="workflow-step">Étape 4 sur 4</span>
+          </div>
+          <p class="subtle">MediaPipe repère des articulations 2D à environ 2 images/s. Le squelette et les angles sont des estimations dépendantes du cadrage, des occultations et de l'angle caméra ; ils ne constituent pas une mesure biomécanique.</p>
+          <p class="subtle">Pour obtenir une pré-cotation : 1) cliquez sur « Analyser les postures » ; 2) choisissez une image dans la liste ci-dessous, ou placez la vidéo sur l’instant voulu puis cliquez sur « Utiliser l’instant vidéo courant » pour sélectionner l’image analysée la plus proche ; 3) vérifiez la vue caméra et les facteurs, puis cliquez sur « Pré-remplir la cotation ». Les images partielles restent sélectionnables ; les angles absents sont traités comme incertains et élargissent la fourchette. Rien n’est enregistré automatiquement.</p>
+          <button id="analyzePosture" type="button" class="secondary">Analyser les postures</button>
+          <progress id="postureProgress" max="100" value="0"></progress>
+          <p id="postureStatus" class="form-message" role="status">Aucun suivi de posture enregistré.</p>
+          <div id="postureReadout" class="posture-readout">Place la vidéo sur une image analysée pour consulter les angles estimés.</div>
+          <section class="posture-candidates-panel" aria-labelledby="postureCandidatesTitle">
+            <h3 id="postureCandidatesTitle">Images analysées — choisir une posture à coter</h3>
+            <p id="postureCandidateSummary" class="subtle">Lancez l’analyse des postures pour afficher les images et les angles détectés, y compris les résultats partiels.</p>
+            <div id="postureCandidateList" class="posture-candidate-list" role="list" aria-label="Images de posture analysées"></div>
+          </section>
+          <p class="subtle">Les scores sont calculés par des tables déterministes à partir d’angles 2D estimés et des facteurs saisis. Ils constituent une pré-cotation à vérifier : ce n’est ni une cotation officielle ni un diagnostic médical.</p>
+          <div class="assessment-tools">
+            <button id="useCurrentAssessmentTime" type="button" class="secondary">Utiliser l’instant vidéo courant</button>
+            <span id="assessmentAngleHint" class="subtle">Les angles MediaPipe proches de l’instant choisi s’afficheront ici comme aide visuelle.</span>
+          </div>
+          <form id="ergonomicAssessmentForm" class="assessment-form">
+            <h3>Pré-cotation ergonomique</h3>
+            <p class="subtle">Pré-cotation à valider par l’évaluateur. Vérifiez les angles et les facteurs dans la vidéo et les grilles officielles avant tout enregistrement.</p>
+            <fieldset class="assessor-factors">
+              <legend>Vue caméra et facteurs évaluateur</legend>
+              <div class="assessment-fields">
+                <label>Vue caméra
+                  <select id="cameraView" name="view_camera">
+                    <option value="inconnue">Non renseignée</option>
+                    <option value="face">Face</option>
+                    <option value="profil_gauche">Profil gauche</option>
+                    <option value="profil_droit">Profil droit</option>
+                    <option value="oblique">Oblique</option>
+                  </select>
+                </label>
+                <label>Charge (kg)<input name="charge_kg" type="number" min="0" step="0.1" /></label>
+                <label>Type d’effort
+                  <select name="type_effort">
+                    <option value="">Non renseigné</option>
+                    <option value="intermittent">Intermittent</option>
+                    <option value="statique">Statique</option>
+                    <option value="repete">Répété</option>
+                    <option value="choc">Choc / effort brusque</option>
+                  </select>
+                </label>
+                <label>Qualité de prise
+                  <select name="prise">
+                    <option value="">Non renseignée</option>
+                    <option value="bonne">Bonne</option>
+                    <option value="acceptable">Acceptable</option>
+                    <option value="mauvaise">Mauvaise</option>
+                    <option value="inacceptable">Inacceptable</option>
+                  </select>
+                </label>
+                <label>Torsion du tronc<select name="torsion_tronc" data-boolean-factor></select></label>
+                <label>Inclinaison latérale du tronc<select name="inclinaison_laterale_tronc" data-boolean-factor></select></label>
+                <label>Torsion du cou<select name="torsion_cou" data-boolean-factor></select></label>
+                <label>Inclinaison latérale du cou<select name="inclinaison_laterale_cou" data-boolean-factor></select></label>
+                <label>Épaule surélevée<select name="epaule_surelevee" data-boolean-factor></select></label>
+                <label>Abduction du bras<select name="abduction_bras" data-boolean-factor></select></label>
+                <label>Bras soutenu<select name="bras_soutenu" data-boolean-factor></select></label>
+                <label>Avant-bras croisé / sur le côté<select name="avant_bras_croise_ligne_mediane" data-boolean-factor></select></label>
+                <label>Déviation du poignet<select name="deviation_poignet" data-boolean-factor></select></label>
+                <label>Rotation du poignet
+                  <select name="rotation_poignet">
+                    <option value="">Non renseignée</option>
+                    <option value="milieu">Milieu de l’amplitude</option>
+                    <option value="proche_butee">Proche de la butée</option>
+                  </select>
+                </label>
+                <label>Appui des jambes
+                  <select name="appui_jambes">
+                    <option value="">Non renseigné</option>
+                    <option value="bilateral">Bilatéral / équilibré</option>
+                    <option value="unilateral">Unilatéral</option>
+                    <option value="assis">Assis</option>
+                    <option value="instable">Instable</option>
+                  </select>
+                </label>
+                <label>Fréquence des gestes (par minute)<input name="frequence_geste_par_min" type="number" min="0" step="0.1" /></label>
+                <label>Posture statique &gt; 1 min
+                  <select name="posture_statique_sup_1min">
+                    <option value="">Non renseignée</option>
+                    <option value="true">Oui</option>
+                    <option value="false">Non</option>
+                  </select>
+                </label>
+              </div>
+            </fieldset>
+            <label class="assessment-time-field">Instant vidéo à coter (s)
+              <input id="assessmentTime" name="time_s" type="number" min="0" step="0.1" required />
+            </label>
+            <button id="prefillAssessment" type="button">Pré-remplir la cotation</button>
+            <div id="scoringResult" class="scoring-result" aria-live="polite">
+              Renseignez la vue caméra et les facteurs connus, puis lancez la pré-cotation.
+            </div>
+            <div class="assessment-fields">
+              <label>Score RULA
+                <select name="rula_score">
+                  <option value="">Non coté</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                  <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+                </select>
+              </label>
+              <label>Score REBA
+                <select name="reba_score">
+                  <option value="">Non coté</option>
+                  <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                  <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                  <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                  <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                  <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                </select>
+              </label>
+              <label>Évaluateur / évaluatrice<input name="evaluator" type="text" maxlength="200" required /></label>
+              <label>Facteurs et observations (charge, prise, répétitivité, torsions, visibilité…)
+                <textarea name="factors_notes" maxlength="4000" required></textarea>
+              </label>
+            </div>
+            <label class="assessment-confirm">
+              <input name="official_method_confirmed" type="checkbox" required />
+              J’ai vérifié la posture et validé ou corrigé cette pré-cotation selon la grille officielle RULA/REBA ; il s’agit d’un dépistage, pas d’un diagnostic médical.
+            </label>
+            <button type="submit">Enregistrer la cotation</button>
+            <p id="assessmentMessage" class="form-message" role="status"></p>
+          </form>
+          <div id="ergonomicAssessmentHistory" class="assessment-history" aria-live="polite"></div>
+        </section>
+      </section>
+        </div>
+      </div>
+    </main>
+
+    <script src="/static/auth-ui.js?v=local-auth-1"></script>
+    <script src="/static/app.js?v=station-settings-persistence-1"></script>
+  </body>
+</html>

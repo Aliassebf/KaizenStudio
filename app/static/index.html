@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kaizen Studio</title>
+    <link rel="stylesheet" href="/static/styles.css?v=project-layout-1" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Kaizen Studio</div>
+        <h1>Tableau de bord</h1>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="dashboard-hero">
+        <div>
+          <span class="dashboard-kicker">PILOTAGE DES ÉTUDES</span>
+          <h2>Bonjour, prêt à améliorer vos postes ?</h2>
+          <p>Retrouvez vos projets, le takt, les analyses et les cotations ergonomiques au même endroit.</p>
+        </div>
+        <div class="privacy-pill"><span aria-hidden="true">●</span> Local-first · sans réseau sortant par défaut</div>
+      </section>
+      <section id="dashboardStats" class="dashboard-stats" aria-label="Indicateurs globaux" aria-live="polite">
+        <article class="stat-card"><span>Projets</span><strong id="projectCount">—</strong></article>
+        <article class="stat-card"><span>Postes étudiés</span><strong id="stationCount">—</strong></article>
+        <article class="stat-card"><span>Cotations RULA / REBA</span><strong id="assessmentCount">—</strong></article>
+        <article class="stat-card"><span>Projets à évaluer</span><strong id="pendingProjectCount">—</strong></article>
+      </section>
+      <section class="project-create-panel">
+        <div>
+          <span class="dashboard-kicker">NOUVELLE ÉTUDE</span>
+          <h2>Démarrer une étude</h2>
+          <p>Crée un projet, indique son takt, puis ajoute un poste et sa vidéo locale.</p>
+        </div>
+        <form id="projectForm" class="project-form">
+          <label>
+            Nom du projet
+            <input name="nom" type="text" maxlength="200" placeholder="Ex. Montage porte cabine" required />
+          </label>
+          <label>
+            Takt (secondes)
+            <input name="takt_s" type="number" min="0.1" step="0.1" placeholder="60" required />
+          </label>
+          <button type="submit">Créer le projet</button>
+        </form>
+        <p id="projectMessage" class="form-message" role="status"></p>
+      </section>
+      <section class="project-toolbar" aria-label="Recherche et filtres">
+        <div>
+          <h2>Vos projets</h2>
+          <p class="subtle">Ouvrez une revue pour analyser le mouvement, suivre la posture ou saisir une cotation officielle.</p>
+        </div>
+        <label class="project-search-label">
+          <span class="visually-hidden">Rechercher un projet ou un poste</span>
+          <input id="projectSearch" type="search" placeholder="Rechercher un projet ou un poste…" />
+        </label>
+        <label class="project-filter-label">
+          <span class="visually-hidden">Filtrer les projets</span>
+          <select id="projectFilter">
+            <option value="all">Tous les projets</option>
+            <option value="pending">À analyser</option>
+            <option value="assess">Cotations à saisir</option>
+            <option value="assessed">Avec cotations</option>
+          </select>
+        </label>
+        <label class="project-sort-label">
+          <span class="visually-hidden">Trier les projets</span>
+          <select id="projectSort">
+            <option value="recent">Plus récents</option>
+            <option value="name">Nom A–Z</option>
+            <option value="assessments">Plus de cotations</option>
+          </select>
+        </label>
+      </section>
+      <p id="projectLoadMessage" class="form-message" role="status"></p>
+      <div id="projectGrid" class="project-grid"></div>
+      <section class="project-create-panel retention-panel" hidden>
+        <div>
+          <h2>Conservation des données</h2>
+          <p>Les projets plus anciens que ce délai sont supprimés avec leurs postes, phases et vidéos locales au démarrage, puis chaque jour.</p>
+        </div>
+        <form id="retentionForm" class="project-form">
+          <label>
+            Durée de conservation (jours)
+            <input id="purgeDays" name="purge_days" type="number" min="1" max="3650" step="1" required />
+          </label>
+          <label>
+            Taille maximale d’une vidéo (Mo)
+            <input id="videoMaxMb" name="video_max_mb" type="number" min="1" max="20480" step="1" required />
+          </label>
+          <button type="submit" class="secondary">Enregistrer les réglages</button>
+          <button id="purgeNow" type="button" class="danger">Purger les projets expirés maintenant</button>
+        </form>
+        <p class="subtle">Limite par défaut : 2048 Mo ; maximum : 20480 Mo. Pour une vidéo de 6 Go, réglez par exemple 7000 Mo. L’import conserve temporairement une copie : prévoyez au moins environ 6 Go libres sur le volume temporaire Windows et 6 Go sur le volume de stockage de Kaizen Studio (12 Go au total).</p>
+        <p id="retentionMessage" class="form-message" role="status"></p>
+      </section>
+    </main>
+
+    <script src="/static/auth-ui.js?v=local-auth-1"></script>
+    <script src="/static/dashboard.js?v=streamed-video-upload-1"></script>
+  </body>
+</html>

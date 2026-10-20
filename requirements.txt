@@ -1,0 +1,11 @@
+opencv-contrib-python>=4.11,<5
+mediapipe>=0.10.20,<0.10.22
+requests
+openpyxl
+python-dotenv
+pytest
+fastapi
+uvicorn
+python-multipart
+# optionnel : authentification Entra ID (az login) au lieu d'une clé API
+# azure-identity

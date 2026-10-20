@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+# Construction / distribution
+build/
+dist/
+*.spec
+wheelhouse/
+# Données utilisateur : JAMAIS dans le dépôt
+*.db
+*.db-wal
+*.db-shm
+*.mp4
+*.mov
+*.avi
+exports/
+models/
+.env

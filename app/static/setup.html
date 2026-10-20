@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Configuration initiale — Kaizen Studio</title>
+    <link rel="stylesheet" href="/static/styles.css?v=local-auth-1" />
+    <style>
+      .auth-shell { width: min(520px, calc(100% - 2rem)); margin: 8vh auto; }
+      .auth-panel { padding: 1.5rem; background: white; border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
+      .auth-panel form, .auth-panel label { display: grid; gap: .65rem; }
+      .auth-panel form { gap: 1rem; }
+      .auth-panel input { padding: .7rem; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+      .auth-panel h1 { margin-top: 0; }
+    </style>
+  </head>
+  <body>
+    <main class="auth-shell">
+      <section class="auth-panel">
+        <div class="eyebrow">Kaizen Studio · première utilisation</div>
+        <h1>Créer le compte administrateur</h1>
+        <p class="subtle">Choisissez un identifiant et un mot de passe fort d’au moins 12 caractères. Ce compte permettra de créer les comptes de l’équipe.</p>
+        <form id="setupForm">
+          <label>Identifiant administrateur<input name="username" minlength="3" maxlength="64" autocomplete="username" required autofocus /></label>
+          <label>Mot de passe (12 caractères minimum)<input name="password" type="password" minlength="12" autocomplete="new-password" required /></label>
+          <button type="submit">Créer l’administrateur</button>
+        </form>
+        <p id="authMessage" class="form-message" role="status"></p>
+      </section>
+    </main>
+    <script src="/static/auth-pages.js?v=local-auth-1"></script>
+  </body>
+</html>

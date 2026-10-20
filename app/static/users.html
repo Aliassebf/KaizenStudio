@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Comptes — Kaizen Studio</title>
+    <link rel="stylesheet" href="/static/styles.css?v=local-auth-1" />
+    <style>
+      .users-shell { max-width: 960px; margin: 1.5rem auto; padding: 0 1rem 2rem; }
+      .users-panel { padding: 1.2rem; margin-top: 1rem; background: white; border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); }
+      .users-form { display: flex; flex-wrap: wrap; align-items: end; gap: .8rem; }
+      .users-form label { display: grid; gap: .35rem; color: var(--muted); }
+      .users-form input, .users-form select { padding: .6rem; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+      .account-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .6rem; padding: .8rem 0; border-bottom: 1px solid var(--border); }
+      .account-row:last-child { border-bottom: 0; }
+      .account-status { color: var(--muted); margin-left: .5rem; }
+      .users-topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: .8rem 1.2rem;
+      }
+      .users-heading { min-width: 0; }
+      .users-heading h1 { overflow-wrap: anywhere; line-height: 1.12; }
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        min-height: 42px;
+        padding: .55rem .85rem;
+        border: 1px solid rgba(255, 255, 255, .42);
+        border-radius: 10px;
+        color: white;
+        background: rgba(255, 255, 255, .1);
+        text-decoration: none;
+        font-size: .88rem;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: background .16s ease, border-color .16s ease;
+      }
+      .back-link::before { content: "←"; font-size: 1rem; }
+      .back-link:hover { background: rgba(255, 255, 255, .2); border-color: white; }
+      .users-topbar > .account-controls { grid-column: 1 / -1; justify-self: end; }
+      @media (max-width: 700px) {
+        .users-topbar { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+        .users-topbar > .account-controls { grid-column: 1; justify-self: start; margin-left: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar users-topbar">
+      <div class="users-heading"><div class="eyebrow">Kaizen Studio</div><h1>Gestion des comptes locaux</h1></div>
+      <a class="back-link" href="/">Retour au tableau de bord</a>
+    </header>
+    <main class="users-shell">
+      <p class="subtle">Chaque utilisateur ne voit que ses propres projets. Communiquez les mots de passe de manière sécurisée et demandez leur renouvellement après la première connexion.</p>
+      <section class="users-panel">
+        <h2>Créer un compte</h2>
+        <form id="accountForm" class="users-form">
+          <label>Identifiant<input name="username" minlength="3" maxlength="64" required /></label>
+          <label>Mot de passe provisoire (12 caractères minimum)<input name="password" type="password" minlength="12" required /></label>
+          <label>Rôle
+            <select name="is_admin">
+              <option value="false" selected>Utilisateur</option>
+              <option value="true">Administrateur</option>
+            </select>
+          </label>
+          <button type="submit">Créer le compte</button>
+        </form>
+        <p id="usersMessage" class="form-message" role="status"></p>
+      </section>
+      <section class="users-panel">
+        <h2>Comptes existants</h2>
+        <div id="userList" aria-live="polite"></div>
+      </section>
+    </main>
+    <script src="/static/auth-ui.js?v=local-auth-1"></script>
+    <script src="/static/users.js?v=local-auth-3"></script>
+  </body>
+</html>

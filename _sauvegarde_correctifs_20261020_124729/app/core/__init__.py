@@ -1,0 +1,1 @@
+"""Utilitaires transverses (fichiers, sécurité)."""
